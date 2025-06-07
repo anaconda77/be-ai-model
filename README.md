@@ -1,1 +1,1 @@
-# be-ai-model
+# Finn
