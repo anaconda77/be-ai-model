@@ -1,23 +1,13 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
-scaler = MinMaxScaler()
 SEQ_LEN = 10
 
-def preprocessing(df):
-    features = ['sentiment_influence', 'open', 'high', 'low', 'adjClose', 'volume']
-    target   = 'close'
-    df = df[ features + [target] ].dropna()
-    return df
-    
-def get_train_scale_data(df):
-    df = preprocessing(df)
+def get_train_scale_data(scaler, df):
     return scaler.fit_transform(df)
 
-def get_test_scale_data(df):
-    df = preprocessing(df)
+def get_test_scale_data(scaler, df):
     return scaler.transform(df)
 
 def create_sequences(arr):
