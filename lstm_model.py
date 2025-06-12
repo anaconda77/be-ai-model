@@ -2,15 +2,15 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 import numpy as np
 
-SEQ_LEN = 10
+SEQ_LEN = 7
 
-def get_train_scale_data(scaler, df):
+def get_scale_data_with_fit(scaler, df):
     return scaler.fit_transform(df)
 
-def get_test_scale_data(scaler, df):
+def get_scale_data(scaler, df):
     return scaler.transform(df)
 
-def create_sequences(arr):
+def create_sequences_for_train(arr):
 
     X, y = [], []
     for i in range(len(arr) - SEQ_LEN):
@@ -18,10 +18,17 @@ def create_sequences(arr):
         y.append(arr[i+SEQ_LEN, -1])      # Close만
     
     return np.array(X), np.array(y)
+    
+def create_sequences_for_prod(arr):
+
+    return np.array([arr[:, :-1]]) 
 
 def compile_model(X_train):
     model = Sequential([
-        LSTM(64, input_shape=(SEQ_LEN, X_train.shape[2])),
+        LSTM(64, 
+             activation='tanh', 
+             recurrent_activation='sigmoid',  # 표준 LSTM의 기본값
+             input_shape=(SEQ_LEN, X_train.shape[2])),
         Dense(1)
     ])
 
