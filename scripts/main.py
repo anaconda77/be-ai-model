@@ -12,11 +12,11 @@ base_dir = os.path.dirname(__file__)
 parent_path = os.path.join(base_dir, '..')
 sys.path.append(parent_path)
 
-from input_processing import get_csv_data, merge_data
-from sentiment_model import analyze_sentiment_with_progress, add_integer_column, sums_sentiment_score_for_7_days, update_sentiment_score_in_db
-from lstm_model import get_scale_data, get_scale_data_with_fit, create_sequences_for_train, compile_model, train_model, predict_prices, create_sequences_for_prod
-from output_processing import compare_prices_with_graph
-from market_capitalization import get_capitalization
+from source.input_processing import get_csv_data, merge_data
+from source.sentiment_model import analyze_sentiment_with_progress, add_integer_column, sums_sentiment_score_for_7_days, update_sentiment_score_in_db
+from source.lstm_model import get_scale_data, get_scale_data_with_fit, create_sequences_for_train, compile_model, train_model, predict_prices, create_sequences_for_prod
+from source.output_processing import compare_prices_with_graph
+from source.market_capitalization import get_capitalization
 
 SEQUENCE_LENGTH = 7
 SENTIMENT_WINDOW_DAYS = 7
@@ -66,12 +66,12 @@ def get_news_data_from_db(start_date, end_date, stock_id):
   return news_response.data
 
 def get_existing_model():
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     load_path = os.path.join(base_dir, 'models', 'tsla_finn_model.keras')
     return load_model(load_path)
 
 def get_existing_scaler():
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     load_path = os.path.join(base_dir, 'models', 'tsla_finn_scaler.pkl')
 
     with open(load_path, 'rb') as f:
