@@ -1,5 +1,5 @@
 STOCK_LIST = ['AAPL', 
-              'HD'
+              'HD',
               'UNH', 
               'AMZN', 
               'BRK-B', 
