@@ -7,7 +7,6 @@ import finnhub
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model
 import pickle
-from config import STOCK_LIST
 
 base_dir = os.path.dirname(__file__)
 parent_path = os.path.join(base_dir, '..')
@@ -18,6 +17,7 @@ from source.sentiment_model import analyze_sentiment_with_progress, add_integer_
 from source.lstm_model import get_scale_data, get_scale_data_with_fit, create_sequences_for_train, compile_model, train_model, predict_prices, create_sequences_for_prod
 from source.output_processing import compare_prices_with_graph
 from source.market_capitalization import get_capitalization
+from source.config import STOCK_LIST
 
 SEQUENCE_LENGTH = 7
 SENTIMENT_WINDOW_DAYS = 7
@@ -26,10 +26,10 @@ FETCH_DAYS = 13
 load_dotenv()
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_API_KEY = os.environ.get('SUPABASE_API_KEY')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 FINNHUB_API_KEY = os.environ.get('FINNHUB_API_KEY')
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
 def get_price_data_from_db(stock_id):
