@@ -7,6 +7,9 @@ import finnhub
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model
 import pickle
+from zoneinfo import ZoneInfo
+
+seoul_tz = ZoneInfo("Asia/Seoul")
 
 base_dir = os.path.dirname(__file__)
 parent_path = os.path.join(base_dir, '..')
@@ -109,7 +112,7 @@ def save_predictions_in_db(stock_id, stock_code, company_name, prediction_price,
         response = supabase.table('predictions') \
         .upsert({"stock_id" : stock_id, "prediction_date": prediction_date, "stock_code" : stock_code,
                 "company_name" : company_name, "prediction_price" : prediction_price, "change_rate" : change_rate,
-                "capitalization" : capitalization}) \
+                "capitalization" : capitalization, "created_at" : datetime.now(seoul_tz)}) \
         .execute()
         
         if hasattr(response, 'error') and response.error is not None:
@@ -230,7 +233,7 @@ def main():
             import traceback
             print(f"🚨 [심각] {stock_code}: 처리 중 알 수 없는 에러 발생. 다음 종목으로 넘어갑니다.")
             # 상세한 에러 로그를 보고 싶을 때 아래 주석 해제
-            # traceback.print_exc()
+            traceback.print_exc()
 
     print("\n===== 모든 주가 예측 작업이 완료되었습니다 =====")
 
