@@ -6,14 +6,13 @@ def get_csv_data(path):
 
 
 def merge_data(news_df, stock_df):
-    news_df['date'] = pd.to_datetime(news_df['date'])
-    stock_df['date'] = pd.to_datetime(stock_df['date'])
+    news_df['date'] = pd.to_datetime(news_df['date']).dt.normalize()
+    stock_df['date'] = pd.to_datetime(stock_df['date']).dt.normalize()
     
     return pd.merge(
         news_df,
         stock_df,
         how='left',
-        left_on='date',
-        right_on='date'
+        on='date',
     )
 
