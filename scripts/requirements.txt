@@ -1,0 +1,29 @@
+# --- 데이터 처리 및 분석 ---
+pandas
+numpy
+scikit-learn
+
+# --- AI / 머신러닝 ---
+tensorflow
+keras
+transformers
+torch
+torchvision
+torchaudio
+
+# --- 외부 API 연동 ---
+supabase
+finnhub-python
+tiingo
+feedparser
+aiohttp
+requests
+
+# --- OCI (Oracle Cloud Infrastructure) 연동 ---
+oci
+fdk
+
+# --- 유틸리티 및 기타 ---
+tqdm
+python-dotenv
+matplotlib
