@@ -17,7 +17,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: ./scripts
+        working-directory: .
 
     steps:
       - name: Checkout Repository
@@ -26,18 +26,30 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.11'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.8.2 # pyproject.toml에 명시된 버전과 일치
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
       - name: Install Dependencies
-        # 이 저장소의 requirements.txt를 기반으로 설치
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt # <-- 이 저장소의 requirements.txt 경로
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
       
       - name: Lint with flake8
         run: |
-          pip install flake8
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          poetry run pip install flake8
+          poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
   # CD Job: main 브랜치에 Push(Merge) 시에만 실행되는 배포 작업
   deploy:
@@ -62,7 +74,7 @@ jobs:
           script: |
             # 1. 프로젝트 폴더로 이동합니다.
             cd ${{ secrets.VM_PROJECT_PATH }}
-            pip3 install -r requirements.txt
+            /home/ubuntu/.local/bin/poetry install --no-interaction --no-root
             
             # 2. main 브랜치의 최신 코드를 받아옵니다.
             git pull origin main
