@@ -15,6 +15,10 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: ./scripts
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -58,6 +62,7 @@ jobs:
           script: |
             # 1. 프로젝트 폴더로 이동합니다.
             cd ${{ secrets.VM_PROJECT_PATH }}
+            pip3 install -r requirements.txt
             
             # 2. main 브랜치의 최신 코드를 받아옵니다.
             git pull origin main
