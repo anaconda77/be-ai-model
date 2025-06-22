@@ -26,6 +26,9 @@ oci = "^2.154.2"
 flake8 = "^7.3.0"
 
 
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.3.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
