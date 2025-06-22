@@ -65,15 +65,16 @@ jobs:
           username: ${{ secrets.OCI_VM_USERNAME }}
           key: ${{ secrets.OCI_VM_SSH_KEY }}
           port: 22
-
+          
+          source: "./"  # 현재 저장소의 모든 파일을 의미
+          target: ${{ secrets.VM_PROJECT_PATH }} # 예: /home/ubuntu/be-ai-model
+          
           # 아래 script 부분이 OCI VM에 접속해서 실제로 실행할 명령어들입니다.
           script: |
             # 1. 프로젝트 폴더로 이동합니다.
             cd ${{ secrets.VM_PROJECT_PATH }}
-            /home/ubuntu/.local/bin/poetry install --no-interaction --no-root
-            
-            # 2. main 브랜치의 최신 코드를 받아옵니다.
-            git pull origin main
+
+            /home/ubuntu/.local/bin/poetry install --no-interaction
 
             # 3. listener.py가 있는 곳으로 이동
             cd /scripts
