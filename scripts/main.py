@@ -1,7 +1,7 @@
 import os
 import pickle
-import sys
-from datetime import datetime, timedelta
+import traceback
+from datetime import datetime
 
 import finnhub
 import numpy as np
@@ -10,18 +10,11 @@ from dotenv import load_dotenv
 from supabase import Client, create_client
 from tensorflow.keras.models import load_model
 
-pandas_ts = pd.Timestamp.now(tz="Asia/Seoul")
-
-base_dir = os.path.dirname(__file__)
-parent_path = os.path.join(base_dir, "..")
-sys.path.append(parent_path)
-
 from source import (
     exceptions,
     input_processing,
     lstm_model,
     market_capitalization,
-    output_processing,
     sentiment_model,
 )
 from source.config import STOCK_LIST
@@ -29,6 +22,7 @@ from source.config import STOCK_LIST
 SEQUENCE_LENGTH = 7
 SENTIMENT_WINDOW_DAYS = 7
 FETCH_DAYS = 13
+pandas_ts = pd.Timestamp.now(tz="Asia/Seoul")
 
 
 def get_price_data_from_db(supabase, stock_id):
@@ -126,7 +120,6 @@ def get_closely_prev_close_price(df):
     latest_valid_row = sorted_df.iloc[0]
 
     # 인덱스가 날짜이므로, .name 속성으로 날짜를 가져옵니다.
-    latest_date = latest_valid_row.name.strftime("%Y-%m-%d")
     latest_close_price = latest_valid_row["close_price"]
 
     return latest_close_price
@@ -268,7 +261,6 @@ def run_prediction_for_stock(supabase, finnhub_client, stock_code: str):
     target = "close"
     target_col_index = all_cols.index(target)
 
-    num_features = len(features)
     dummy_array = np.zeros((len(y_pred_scaled), len(all_cols)))
 
     # 'close' 위치(6번 인덱스)에 예측된 값을 삽입
@@ -339,10 +331,8 @@ def main():
             )
 
         except Exception as e:
-            import traceback
-
             print(
-                f"🚨 [심각] {stock_code}: 처리 중 알 수 없는 에러 발생. 다음 종목으로 넘어갑니다."
+                f"🚨 [심각] {stock_code}: 처리 중 알 수 없는 에러 발생. 다음 종목으로 넘어갑니다. (원인: {e})"
             )
             traceback.print_exc()
 

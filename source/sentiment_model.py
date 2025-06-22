@@ -61,48 +61,6 @@ def analyze_sentiment_with_progress(
         ) from e
 
 
-# ─── 배치+진행 바 버전 감성 분석 함수 ────────────────────────────────────────
-def analyze_sentiment_with_progress(
-    df: pd.DataFrame, batch_size: int = 32
-) -> pd.DataFrame:
-    """
-    df의 'title' 컬럼을 batch_size 단위로 묶어서 finbert pipeline에 넘기고,
-    tqdm으로 진행 상태를 표시합니다. 반환되는 DataFrame은
-    ['date','sentiment','confidence','sentiment_score'] 네 개 칼럼을 가집니다.
-    """
-    # filtering_df = filtering_none_score_date(df)
-
-    # 1) date, title만 남긴 복사본 만들기
-    df2 = df[["news_id", "date", "title"]].copy()
-    n = len(df2)
-
-    # 2) 결과를 담을 리스트 미리 생성
-    all_labels = [None] * n
-    all_scores = [None] * n
-
-    # 3) 총 배치 개수 계산
-    total_batches = int(np.ceil(n / batch_size))
-
-    # 4) 인덱스별로 batch 처리하며 tqdm으로 진행 상황 표시
-    for i in tqdm(range(total_batches), desc="감성 분석 진행중", unit="batch"):
-        start_idx = i * batch_size
-        end_idx = min(start_idx + batch_size, n)
-
-        texts = df2["title"].iloc[start_idx:end_idx].astype(str).tolist()
-        results = finbert(texts)  # 리스트: [{ 'label': ..., 'score': ... }, ...]
-
-        # 배치 결과를 미리 만든 리스트에 저장
-        for j, res in enumerate(results, start=start_idx):
-            all_labels[j] = res["label"]
-            all_scores[j] = round(res["score"], 4)
-
-    # 5) 리스트를 칼럼에 할당
-    df2["sentiment"] = all_labels
-    df2["confidence"] = all_scores
-
-    return df2
-
-
 def add_integer_column(df):
     # 6) 정수형 점수 컬럼 추가
     sentiment_map = {"positive": 1, "neutral": 0, "negative": -1}

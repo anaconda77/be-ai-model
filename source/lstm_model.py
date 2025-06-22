@@ -17,7 +17,7 @@ def create_sequences_for_train(arr):
 
     X, y = [], []
     for i in range(len(arr) - SEQ_LEN):
-        X.append(arr[i : i + SEQ_LEN, :-1])  # 모든 피처
+        X.append(arr[i:i + SEQ_LEN, :-1])  # 모든 피처
         y.append(arr[i + SEQ_LEN, -1])  # Close만
 
     return np.array(X), np.array(y)

@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess  # 모델 실행 스크립트를 별도 프로세스로 실행하기 위함
 import time
