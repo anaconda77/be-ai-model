@@ -57,30 +57,25 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Deploy to VM via SSH
-        # SSH 접속 및 원격 명령어 실행을 위한 인기있는 Action
+      - name: Copy source files to OCI VM
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.OCI_VM_HOST }}
+          username: ${{ secrets.OCI_VM_USERNAME }}
+          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          port: 22
+          source: "./"
+          target: ${{ secrets.VM_PROJECT_PATH }}
+      
+      - name: Restart service via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.OCI_VM_HOST }}
           username: ${{ secrets.OCI_VM_USERNAME }}
           key: ${{ secrets.OCI_VM_SSH_KEY }}
           port: 22
-          
-          source: "./"  # 현재 저장소의 모든 파일을 의미
-          target: ${{ secrets.VM_PROJECT_PATH }} # 예: /home/ubuntu/be-ai-model
-          
-          # 아래 script 부분이 OCI VM에 접속해서 실제로 실행할 명령어들입니다.
           script: |
-            # 1. 프로젝트 폴더로 이동합니다.
             cd ${{ secrets.VM_PROJECT_PATH }}
-
             /home/ubuntu/.local/bin/poetry install --no-interaction
-
-            # 3. listener.py가 있는 곳으로 이동
-            cd /scripts
-            
-            # 4. 리스너 서비스를 재시작하여 변경된 코드를 적용합니다.
             sudo systemctl restart model_listener.service
-            
-            # 5. 서비스가 정상적으로 재시작되었는지 상태를 확인합니다. (로그에 남김)
             sudo systemctl status model_listener.service
