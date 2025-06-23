@@ -1,13 +1,19 @@
 import os
 import subprocess  # 모델 실행 스크립트를 별도 프로세스로 실행하기 위함
 import time
-from oci.auth.signers import InstancePrincipalsSecurityTokenSigner
+
 import oci
+from oci.auth.signers import InstancePrincipalsSecurityTokenSigner
+
+from source.logging_config import setup_logging
+
+logger = setup_logging()
 
 
 def run_model_pipeline():
     """AI 모델 실행 스크립트를 호출하는 함수"""
-    print("AI 모델 실행 파이프라인을 시작합니다...")
+    logger.info("AI 모델 실행 파이프라인(main.py)을 서브프로세스로 시작합니다...")
+
     try:
         script_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "main.py"
@@ -18,19 +24,20 @@ def run_model_pipeline():
             capture_output=True,
             text=True,
         )
-        print("모델 실행 성공:")
-        print(result.stdout)
+        logger.info("모델 실행 파이프라인 서브프로세스가 성공적으로 완료되었습니다.")
+        logger.info(f"실행 결과:\n{result.stdout}")
     except subprocess.CalledProcessError as e:
-        print("모델 실행 실패:")
-        print(e.stderr)
+        logger.error("모델 실행 파이프라인 서브프로세스 실패:", exc_info=False)
+        logger.error(f"Error Code: {e.returncode}")
+        logger.error(f"Stderr:\n{e.stderr}")
         raise e
     except FileNotFoundError:
-        print("오류: run_model.py 스크립트를 찾을 수 없습니다.")
+        logger.error("오류: poetry 또는 main.py 스크립트를 찾을 수 없습니다.")
         raise
 
 
 def main():
-    print("리스너 서비스 시작. OCI Queue에서 새 메시지를 기다립니다...")
+    logger.info("리스너 서비스가 시작되었습니다. 큐에서 새 메시지를 기다립니다...")
 
     signer = InstancePrincipalsSecurityTokenSigner()
     queue_client = oci.queue.QueueClient(config={}, signer=signer)
@@ -51,12 +58,12 @@ def main():
 
             if messages:
                 message = messages[0]
-                print(f"작업 신호 수신: {message.content}")
+                logger.info(f"작업 신호 수신: {message.content}")
 
                 # 모델 실행 파이프라인 호출
                 run_model_pipeline()
 
-                print("작업 완료. 큐에서 메시지를 삭제합니다.")
+                logger.info("작업 완료. 큐에서 메시지를 삭제합니다.")
                 # 작업이 성공적으로 끝나면, 큐에서 메시지를 삭제하여 중복 실행 방지
                 queue_client.delete_message(
                     queue_id=queue_id,
@@ -68,7 +75,7 @@ def main():
                 time.sleep(5)
 
         except Exception as e:
-            print(f"리스너 실행 중 오류 발생: {e}")
+            logger.error(f"리스너 메인 루프에서 치명적인 오류 발생: {e}", exc_info=True)
             time.sleep(60)  # 오류 발생 시 1분 대기 후 재시도
 
 
