@@ -9,10 +9,8 @@ def run_model_pipeline():
     """AI 모델 실행 스크립트를 호출하는 함수"""
     print("AI 모델 실행 파이프라인을 시작합니다...")
     try:
-        # run_model.py 스크립트가 같은 폴더에 있다고 가정
-        # python3의 전체 경로를 사용하고, 스크립트의 전체 경로를 사용하는 것이 안정적
         script_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "run_model.py"
+            os.path.dirname(os.path.abspath(__file__)), "main.py"
         )
         result = subprocess.run(
             ["/usr/bin/python3", script_path],
@@ -75,7 +73,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # VM 환경 변수 설정 (이전 답변 참고하여 ~/.bashrc에 추가)
-    # export QUEUE_ID=...
-    # export QUEUE_ENDPOINT=...
     main()
