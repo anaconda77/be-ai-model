@@ -40,18 +40,22 @@ def main():
     logger.info("리스너 서비스가 시작되었습니다. 큐에서 새 메시지를 기다립니다...")
 
     signer = InstancePrincipalsSecurityTokenSigner()
-    queue_client = oci.queue.QueueClient(config={}, signer=signer)
 
     queue_id = os.environ.get("QUEUE_ID")
     messages_endpoint = os.environ.get("QUEUE_ENDPOINT")
 
+    queue_client = oci.queue.QueueClient(
+        config={}, 
+        signer=signer,
+        service_endpoint=messages_endpoint
+    )
+    
     while True:
         try:
             # 큐에서 메시지를 가져오려고 시도 (메시지가 없으면 여기서 잠든 상태로 대기)
             get_messages_response = queue_client.get_messages(
                 queue_id=queue_id,
-                visibility_in_seconds=300,  # 5분간 이 메시지를 다른 리스너가 못 가져가게 함
-                endpoint=messages_endpoint,
+                visibility_in_seconds=300  # 5분간 이 메시지를 다른 리스너가 못 가져가게 함
             )
 
             messages = get_messages_response.data.messages
@@ -67,8 +71,7 @@ def main():
                 # 작업이 성공적으로 끝나면, 큐에서 메시지를 삭제하여 중복 실행 방지
                 queue_client.delete_message(
                     queue_id=queue_id,
-                    message_receipt=message.receipt,
-                    endpoint=messages_endpoint,
+                    message_receipt=message.receipt
                 )
             else:
                 # 큐가 비어있으면 5초 대기 (네트워크 이슈 등 대비)
