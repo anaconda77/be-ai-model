@@ -1,7 +1,7 @@
 import os
 import subprocess  # 모델 실행 스크립트를 별도 프로세스로 실행하기 위함
 import time
-
+from oci.auth.signers import InstancePrincipalsSecurityTokenSigner
 import oci
 
 
@@ -34,7 +34,7 @@ def run_model_pipeline():
 def main():
     print("리스너 서비스 시작. OCI Queue에서 새 메시지를 기다립니다...")
 
-    signer = oci.auth.signers.get_instance_principals_signer()
+    signer = InstancePrincipalsSecurityTokenSigner()
     queue_client = oci.queue.QueueClient(config={}, signer=signer)
 
     queue_id = os.environ.get("QUEUE_ID")
