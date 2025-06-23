@@ -1,6 +1,5 @@
 import os
 import pickle
-import traceback
 from datetime import datetime
 
 import finnhub
@@ -9,6 +8,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from supabase import Client, create_client
 from tensorflow.keras.models import load_model
+from tqdm import tqdm
 
 from source import (
     exceptions,
@@ -18,6 +18,9 @@ from source import (
     sentiment_model,
 )
 from source.config import STOCK_LIST
+from source.logging_config import setup_logging
+
+logger = setup_logging()
 
 SEQUENCE_LENGTH = 7
 SENTIMENT_WINDOW_DAYS = 7
@@ -155,18 +158,18 @@ def save_predictions_in_db(
         )
 
         if hasattr(response, "error") and response.error is not None:
-            print(f"🚨 DB 업데이트 중 에러가 발생했습니다: {response.error}")
+            logger.error(f"DB 업데이트 중 에러가 발생했습니다: {response.error}")
         else:
-            print("✅ DB 업데이트가 성공적으로 완료되었습니다.")
+            logger.info("✅ DB 업데이트가 성공적으로 완료되었습니다.")
     except Exception as e:
         raise exceptions.DatabaseError(f"DB 업데이트 중 예외 발생: {e}") from e
 
 
 def run_prediction_for_stock(supabase, finnhub_client, stock_code: str):
     """단일 주식 코드에 대한 전체 예측 파이프라인을 실행합니다."""
-    print("\n" + "=" * 50)
-    print(f"🚀 {stock_code} 예측 프로세스 시작")
-    print("=" * 50)
+    logger.info("=" * 50)
+    logger.info(f"🚀 {stock_code} 예측 프로세스 시작")
+    logger.info("=" * 50)
 
     # 1. 모델 및 스케일러 로드
     model = get_existing_model(stock_code)
@@ -271,8 +274,11 @@ def run_prediction_for_stock(supabase, finnhub_client, stock_code: str):
     next_day_predicted_close = y_pred_actual[-1].round(4)
     closely_prev_price = get_closely_prev_close_price(merged_df)
     change_rate = get_change_rate(closely_prev_price, next_day_predicted_close)
+    logger.info(
+        f"[{stock_code}] 모델 예측 완료. 예측 종가: ${next_day_predicted_close:.4f}"
+    )
 
-    print(f"예측된 실제 종가: ${next_day_predicted_close:.4f}")
+    logger.info(f"[{stock_code}] 시가총액 정보 조회 및 최종 결과 DB 저장 시작...")
     capitalization = market_capitalization.get_capitalization(
         finnhub_client, stock_code
     )
@@ -287,56 +293,57 @@ def run_prediction_for_stock(supabase, finnhub_client, stock_code: str):
         change_rate,
         capitalization,
     )
+    logger.info(f"[{stock_code}] 예측 프로세스 성공적으로 종료.")
 
 
 def main():
     load_dotenv()
 
-    SUPABASE_URL = os.environ.get("SUPABASE_URL")
-    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-    FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY")
+    try:
+        SUPABASE_URL = os.environ.get("SUPABASE_URL")
+        SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+        FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY")
 
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        finnhub_client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
-    if not all([SUPABASE_URL, SUPABASE_KEY, FINNHUB_API_KEY]):
-        raise exceptions.ConfigError(
-            "필수 환경 변수(SUPABASE_URL, SUPABASE_KEY, FINNHUB_API_KEY)가 설정되지 않았습니다."
+        if not all([SUPABASE_URL, SUPABASE_KEY, FINNHUB_API_KEY]):
+            raise exceptions.ConfigError(
+                "필수 환경 변수(SUPABASE_URL, SUPABASE_KEY, FINNHUB_API_KEY)가 설정되지 않았습니다."
+            )
+
+        """STOCK_LIST에 있는 모든 주식에 대해 예측을 순차적으로 실행합니다."""
+        logger.info("===== 전체 주가 예측 작업을 시작합니다 =====")
+
+        for stock_code in STOCK_LIST:
+            try:
+                # 각 주식에 대한 예측 파이프라인 실행
+                run_prediction_for_stock(supabase, finnhub_client, stock_code)
+                tqdm.write(f"✅ {stock_code} 예측 및 저장 작업 완료.")
+
+            except (
+                exceptions.ModelLoadError,
+                exceptions.DataFetchError,
+                exceptions.InsufficientDataError,
+                exceptions.DatabaseError,
+            ) as e:
+                tqdm.write(
+                    f"🚨 [{e.__class__.__name__}] {stock_code}: 처리 건너뜀 (원인: {e})"
+                )
+
+            except Exception as e:
+                # ⭐ [수정] traceback.print_exc() 대신 logger 사용
+                tqdm.write(
+                    f"🚨 [심각] {stock_code}: 처리 중 알 수 없는 에러 발생. 다음 종목으로 넘어갑니다. (원인: {e})"
+                )
+                logger.error(f"[{stock_code}] 예측 불가 오류 발생", exc_info=True)
+
+    except Exception as e:
+        logger.critical(
+            f"메인 작업 실행 중 예측하지 못한 심각한 오류 발생: {e}", exc_info=True
         )
 
-    """STOCK_LIST에 있는 모든 주식에 대해 예측을 순차적으로 실행합니다."""
-    print("===== 전체 주가 예측 작업을 시작합니다 =====")
-
-    # config.py 에 정의된 주식 리스트
-    # STOCK_LIST = ['AAPL', 'TSLA', 'GOOGL', 'NON_EXISTENT_STOCK']
-
-    for stock_code in STOCK_LIST:
-        try:
-            # 각 주식에 대한 예측 파이프라인 실행
-            run_prediction_for_stock(supabase, finnhub_client, stock_code)
-            print(f"✅ {stock_code} 예측 및 저장 작업 완료.")
-
-        except exceptions.ModelLoadError as e:
-            print(f"🚨 [모델 오류] {stock_code}: 처리 건너뜀 (원인: {e})")
-
-        except exceptions.DataFetchError as e:
-            print(f"🚨 [데이터 조회 오류] {stock_code}: 처리 건너뜀 (원인: {e})")
-
-        except exceptions.InsufficientDataError as e:
-            print(f"🚨 [데이터 부족] {stock_code}: 처리 건너뜀 (원인: {e})")
-
-        except exceptions.DatabaseError as e:
-            print(
-                f"🚨 [DB 저장 오류] {stock_code}: 예측은 완료했으나 저장 실패 (원인: {e})"
-            )
-
-        except Exception as e:
-            print(
-                f"🚨 [심각] {stock_code}: 처리 중 알 수 없는 에러 발생. 다음 종목으로 넘어갑니다. (원인: {e})"
-            )
-            traceback.print_exc()
-
-    print("\n===== 모든 주가 예측 작업이 완료되었습니다 =====")
+    logger.info("\n===== 모든 주가 예측 작업이 완료되었습니다 =====")
 
 
 if __name__ == "__main__":
