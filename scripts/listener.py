@@ -18,14 +18,19 @@ def run_model_pipeline():
         script_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "main.py"
         )
+        
+        poetry_path = "/home/ubuntu/.local/bin/poetry"
+        
         result = subprocess.run(
-            ["/usr/bin/python3", script_path],
-            check=True,
-            capture_output=True,
+            [poetry_path, 'run', 'python', script_path], 
+            check=True, 
+            capture_output=True, 
             text=True,
         )
+        
         logger.info("모델 실행 파이프라인 서브프로세스가 성공적으로 완료되었습니다.")
         logger.info(f"실행 결과:\n{result.stdout}")
+        
     except subprocess.CalledProcessError as e:
         logger.error("모델 실행 파이프라인 서브프로세스 실패:", exc_info=False)
         logger.error(f"Error Code: {e.returncode}")
