@@ -1,6 +1,6 @@
 import os
 import pickle
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import finnhub
 import numpy as np
@@ -212,7 +212,7 @@ def run_prediction_for_stock(supabase, finnhub_client, stock_code: str):
         columns={"price_date": "date", "id": "stock_price_id"}
     )
     start_date = pd.to_datetime(stock_prices_df["date"]).min()
-    end_date = pd.Timestamp.now(tz='Asia/Seoul')
+    end_date = pd.Timestamp.now(tz='Asia/Seoul') + timedelta(days=1)
 
     news_response = get_news_data_from_db(supabase, start_date, end_date, stock_id)
     news_df = pd.DataFrame(news_response)
