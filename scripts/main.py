@@ -212,7 +212,7 @@ def run_prediction_for_stock(supabase, finnhub_client, stock_code: str):
         columns={"price_date": "date", "id": "stock_price_id"}
     )
     start_date = pd.to_datetime(stock_prices_df["date"]).min()
-    end_date = datetime.now()
+    end_date = pd.Timestamp.now(tz='Asia/Seoul')
 
     news_response = get_news_data_from_db(supabase, start_date, end_date, stock_id)
     news_df = pd.DataFrame(news_response)
