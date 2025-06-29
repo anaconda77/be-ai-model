@@ -38,3 +38,7 @@ class SentimentAnalysisError(PredictionError):
     """감성 분석 모델 실행 중 오류"""
 
     pass
+
+class TradingDayFoundError(PredictionError):
+    """최근 10일간 가장 가까운 개장일을 찾는데 실패한 오류"""
+    pass

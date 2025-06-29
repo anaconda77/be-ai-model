@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import finnhub
 import numpy as np
 import pandas as pd
+import pandas_market_calendars as mcal
 from dotenv import load_dotenv
 from supabase import Client, create_client
 from tensorflow.keras.models import load_model
@@ -127,7 +128,29 @@ def get_closely_prev_close_price(df):
 
     return latest_close_price
 
-
+def get_next_us_trading_day():
+    """
+    pandas-market-calendars를 사용해 KST 오늘을 기준으로
+    가장 가까운 미국 증시(NYSE) 개장일을 'YYYY-MM-DD' 형식으로 반환합니다.
+    """
+    # NYSE 캘린더를 가져옵니다.
+    nyse = mcal.get_calendar('NYSE')
+    
+    # 한국 시간 기준 오늘 날짜를 구합니다.
+    today = datetime.now()
+    
+    # 오늘부터 향후 10일간의 개장일 스케줄을 조회합니다.
+    schedule = nyse.schedule(start_date=today.strftime('%Y-%m-%d'), 
+                             end_date=(today + timedelta(days=10)).strftime('%Y-%m-%d'))
+    
+    # 조회된 스케줄의 첫 번째 날짜가 바로 '가장 가까운 개장일'입니다.
+    if not schedule.empty:
+        next_trading_day = schedule.index[0].date()
+        return next_trading_day.strftime('%Y-%m-%d')
+    else:
+        # 10일 안에 개장일이 없는 극단적인 경우에 대한 예외 처리
+        raise exceptions.TradingDayFoundError("향후 10일 내에 개장일을 찾을 수 없습니다.")
+    
 # Predictions row를 만들고, db에 저장(시가총액 정보도 호출하여 저장)
 def save_predictions_in_db(
     supabase,
@@ -135,11 +158,11 @@ def save_predictions_in_db(
     stock_code,
     company_name,
     prediction_price,
-    prediction_date,
     change_rate,
     capitalization,
 ):
     try:
+        prediction_date = get_next_us_trading_day() # 가장 가까운 개장일 찾아옴
         response = (
             supabase.table("predictions")
             .upsert(
@@ -282,14 +305,12 @@ def run_prediction_for_stock(supabase, finnhub_client, stock_code: str):
     capitalization = market_capitalization.get_capitalization(
         finnhub_client, stock_code
     )
-    today_date = datetime.now().strftime("%Y-%m-%d")
     save_predictions_in_db(
         supabase,
         stock_id,
         stock_code,
         company_name,
         next_day_predicted_close,
-        today_date,
         change_rate,
         capitalization,
     )
